@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "2. DecodingAudioExample": {
+      "commandName": "Project",
+      "commandLineArgs": "\"$(ProjectDir)..\\\\mp4-example-video-download-full-hd-1920x1080.1min.mp4\" \"output.wav\""
+    }
+  }
+}

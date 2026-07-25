@@ -8,7 +8,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="FFmpegDotNet" Version="8.1.2.2" />
+		<PackageReference Include="FFmpegDotNet" Version="8.1.2.3" />
 		<PackageReference Include="FFmpegDotNet.bin.winx64" Version="8.1.2" />
 	</ItemGroup>
 

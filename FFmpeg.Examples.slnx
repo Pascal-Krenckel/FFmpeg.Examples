@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Projektmappenelemente/">
     <File Path="mp4-example-video-download-full-hd-1920x1080.1min.mp4" />
+    <File Path="README.md" />
   </Folder>
   <Project Path="1. DecodingVideoExample/1. DecodingVideoExample.csproj" />
   <Project Path="2. DecodingAudioExample/2. DecodingAudioExample.csproj" />

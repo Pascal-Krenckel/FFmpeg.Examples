@@ -7,4 +7,5 @@
   <Project Path="2. DecodingAudioExample/2. DecodingAudioExample.csproj" />
   <Project Path="3. DecodingUnderTheHood/3. DecodingUnderTheHood.csproj" />
   <Project Path="4. Options/4. Options.csproj" Id="47c268ae-49ba-43f6-9320-9bf34cda953c" />
+  <Project Path="5. Encoding/5. Encoding.csproj" Id="173cd1a4-493d-4707-97b2-78e01002810f" />
 </Solution>

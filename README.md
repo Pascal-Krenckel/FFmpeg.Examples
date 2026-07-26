@@ -1,103 +1,179 @@
 # FFmpeg.Examples
 
-Example projects demonstrating how to use **FFmpegDotNet**, a modern .NET wrapper around FFmpeg built on top of FFmpeg.AutoGen.
+Example projects demonstrating how to use **FFmpegDotNet** for multimedia processing in .NET.
 
-Each example is a small, self-contained application that focuses on a specific multimedia task using the high-level APIs provided by FFmpegDotNet. The goal is to provide practical reference implementations that can be easily adapted for your own projects.
+The examples showcase different abstraction levels provided by FFmpegDotNet:
 
-> Every example includes its own detailed README explaining the code, workflow, and APIs involved.
+* **High-level APIs** for common multimedia workflows
+* **Low-level APIs** for direct control over FFmpeg's decoding and encoding pipeline
 
----
-
-## Prerequisites
-
-Before running any example, make sure you have:
-
-- .NET SDK 8.0 or later
-- The latest version of **FFmpegDotNet**
-- FFmpeg binaries available on your system (or via the `FFmpegDotNet.bin.winx64` package)
-
-For installation instructions and library documentation, see the main **FFmpegDotNet** repository.
+The goal of this repository is to provide practical examples that demonstrate how FFmpegDotNet can be used while also showing how the underlying FFmpeg concepts work.
 
 ---
 
-## Available Examples
+# Examples
 
-### 🎬 Decoding Video
+## 🎥 Decoding
 
-Demonstrates how to:
-
-- Open a media file
-- Decode video frames
-- Seek to a random position
-- Convert decoded frames to RGB
-- Save the result as a bitmap
-
-This example introduces the high-level `MediaSource` API for video decoding.
+Examples demonstrating how to read media files and decode streams.
 
 ---
 
-### 🔊 Decoding Audio
+## 1. Decoding Video
 
-Demonstrates how to:
+**High-level video decoding example**
 
-- Open an audio or video file
-- Decode audio frames
-- Convert audio samples to a common sample format
-- Save decoded PCM data as a WAV file
+This example demonstrates how to use the `MediaSource` API to decode a video frame.
 
-This example shows how FFmpegDotNet simplifies audio decoding while automatically handling demuxing and decoder configuration.
+The example:
 
----
+* Opens a media file
+* Automatically configures the required demuxer and decoder
+* Seeks to a random position
+* Decodes a video frame
+* Converts the frame into an RGB image
+* Saves the result as a bitmap
 
-### 🎥 Encoding Video
-
-Demonstrates how to:
-
-- Create a video encoder
-- Generate synthetic frames
-- Encode them into H.264
-- Write the encoded stream into an MP4 container
-
-This example illustrates the encoding pipeline using the high-level API.
+This demonstrates how FFmpegDotNet simplifies common decoding scenarios by handling the underlying FFmpeg setup automatically.
 
 ---
 
-## Repository Structure
+## 2. Decoding Audio
+
+**High-level audio decoding example**
+
+This example demonstrates decoding audio streams using the high-level API.
+
+The example:
+
+* Opens an audio file
+* Decodes audio frames
+* Converts samples into a usable format
+* Writes the decoded audio data into a WAV file
+
+It shows how FFmpegDotNet can be used to process audio without manually managing the individual FFmpeg components.
+
+---
+
+## 3. Decoding Under The Hood
+
+**Low-level decoding example**
+
+This example demonstrates how the FFmpeg decoding pipeline works internally.
+
+Instead of using the high-level `MediaSource` abstraction, the example manually handles the individual FFmpeg building blocks:
+
+* Opening the input format
+* Finding streams
+* Creating codec contexts
+* Reading packets
+* Sending packets to decoders
+* Receiving decoded frames
+
+This example is intended for users who want to understand the lower-level FFmpeg workflow or need full control over the decoding process.
+
+---
+
+# Encoding
+
+## 4. Encoding
+
+**Low-level encoding example**
+
+This example demonstrates how to create media files by manually building an encoding pipeline.
+
+The example covers the main FFmpeg encoding workflow:
+
+* Creating an output format context
+* Creating streams
+* Configuring an encoder
+* Allocating frames
+* Sending frames to the encoder
+* Receiving encoded packets
+* Writing packets into the output container
+
+This example shows how FFmpegDotNet exposes the underlying FFmpeg API while still providing a managed .NET interface.
+
+---
+
+# Options
+
+## 5. Options
+
+This example demonstrates how FFmpeg options can be configured using FFmpegDotNet.
+
+FFmpeg uses a flexible option system to configure many components, including:
+
+* Formats
+* Codecs
+* Filters
+* Other FFmpeg modules
+
+This example shows how these options can be passed through the managed API while keeping the same flexibility as the native FFmpeg API.
+
+---
+
+# Planned Examples
+
+## Filters
+
+Examples demonstrating FFmpeg filter graphs.
+
+Planned examples include:
+
+* Creating filter graphs
+* Connecting filter inputs and outputs
+* Processing decoded frames
+* Retrieving filtered frames
+
+---
+
+## Transcoding
+
+Examples demonstrating complete media conversion pipelines.
+
+A transcoding pipeline combines multiple FFmpeg stages:
 
 ```
-FFmpeg.Examples
-│
-├── DecodingAudio/
-├── DecodingVideo/
-├── EncodingVideo/
-└── ...
+Demux → Decode → Filter → Encode → Mux
 ```
 
-Each project is completely independent and can be opened and run individually.
+Planned examples include:
+
+* High-level transcoding using the `Transcoder` abstraction
+* Low-level transcoding with manual pipeline management
 
 ---
 
-## Purpose
+# Running the Examples
 
-These examples are intended to:
+1. Clone this repository.
 
-- Learn the FFmpegDotNet API
-- Understand common FFmpeg workflows
-- Provide copy-and-paste starting points
-- Demonstrate recommended usage patterns
+2. Restore NuGet packages.
 
-Rather than exposing FFmpeg's low-level C API directly, the examples use the managed object-oriented abstractions provided by FFmpegDotNet.
+3. Ensure FFmpeg native libraries are available.
 
----
+4. Open and run the desired example project.
 
-## Related Projects
-
-- **FFmpegDotNet** – High-level .NET wrapper around FFmpeg
-- **FFmpegDotNet.bin.winx64** – Redistributable FFmpeg binaries for Windows
-- **FFmpeg.AutoGen** – Low-level C# bindings used internally
+Each example directory contains a README with additional details about the implementation and concepts demonstrated.
 
 ---
 
-## License
+# Related Projects
 
-This repository is licensed under the same license as FFmpegDotNet.
+* **FFmpegDotNet**
+  The main .NET wrapper library for FFmpeg.
+
+* **FFmpeg.Skia**
+  Integration between FFmpegDotNet and SkiaSharp for converting decoded video frames into images.
+
+* **FFmpegDotNet.bin.winx64**
+  Package containing FFmpeg native binaries for Windows.
+
+---
+
+# Purpose
+
+These examples are intended to demonstrate the different levels of abstraction available in FFmpegDotNet.
+
+Simple applications can use the high-level APIs, while advanced users can work directly with the underlying FFmpeg components to build custom multimedia pipelines.

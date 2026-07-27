@@ -164,7 +164,7 @@ Each example directory contains a README with additional details about the imple
 * **FFmpegDotNet**
   The main .NET wrapper library for FFmpeg.
 
-* **FFmpeg.Skia**
+* **FFmpegDotNet.Skia**
   Integration between FFmpegDotNet and SkiaSharp for converting decoded video frames into images.
 
 * **FFmpegDotNet.bin.winx64**

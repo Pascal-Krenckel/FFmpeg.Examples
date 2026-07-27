@@ -11,7 +11,7 @@
   <ItemGroup>
     <PackageReference Include="FFmpegDotNet" Version="8.1.2.4" />
     <PackageReference Include="FFmpegDotNet.bin.winx64" Version="8.1.2" />
-    <PackageReference Include="FFmpegDotNet.Skia" Version="2.0.0" />
+    <PackageReference Include="FFmpegDotNet.Skia" Version="2.1.0" />
   </ItemGroup>
 
 </Project>

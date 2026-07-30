@@ -5,7 +5,7 @@ Example projects demonstrating how to use **FFmpegDotNet** for multimedia proces
 The examples showcase different abstraction levels provided by FFmpegDotNet:
 
 * **High-level APIs** for common multimedia workflows
-* **Low-level APIs** for direct control over FFmpeg's decoding and encoding pipeline
+* **Low-level APIs** for direct control over FFmpeg's decoding, encoding, and processing pipeline
 
 The goal of this repository is to provide practical examples that demonstrate how FFmpegDotNet can be used while also showing how the underlying FFmpeg concepts work.
 
@@ -74,31 +74,9 @@ This example is intended for users who want to understand the lower-level FFmpeg
 
 ---
 
-# Encoding
+# ⚙️ Options
 
-## 4. Encoding
-
-**Low-level encoding example**
-
-This example demonstrates how to create media files by manually building an encoding pipeline.
-
-The example covers the main FFmpeg encoding workflow:
-
-* Creating an output format context
-* Creating streams
-* Configuring an encoder
-* Allocating frames
-* Sending frames to the encoder
-* Receiving encoded packets
-* Writing packets into the output container
-
-This example shows how FFmpegDotNet exposes the underlying FFmpeg API while still providing a managed .NET interface.
-
----
-
-# Options
-
-## 5. Options
+## 4. Options
 
 This example demonstrates how FFmpeg options can be configured using FFmpegDotNet.
 
@@ -113,20 +91,125 @@ This example shows how these options can be passed through the managed API while
 
 ---
 
-# Planned Examples
+# 🎞️ Encoding
 
-## Filters
-
-Examples demonstrating FFmpeg filter graphs.
-
-Planned examples include:
-
-* Creating filter graphs
-* Connecting filter inputs and outputs
-* Processing decoded frames
-* Retrieving filtered frames
+Examples demonstrating how to generate and encode media.
 
 ---
+
+## 5. Encoding
+
+**High-level video encoding example**
+
+This example demonstrates how to create a video using the high-level `MediaSink` API.
+
+The example generates video frames, encodes them using the SVT-AV1 encoder (`libsvtav1`), and writes the result to an output file.
+
+It demonstrates how `MediaSink` simplifies the encoding workflow by handling the underlying FFmpeg components and encoding process.
+
+This example is intended for users who want to create encoded media without having to manually manage every step of the FFmpeg encoding pipeline.
+
+---
+
+## 6. Encoding Under The Hood
+
+**Low-level video encoding example**
+
+This example demonstrates how to manually build an FFmpeg encoding pipeline using FFmpegDotNet.
+
+Instead of using the high-level `MediaSink` abstraction, the example directly manages the individual components involved in encoding:
+
+* Creating a `MuxerContext`
+* Finding and initializing a video encoder
+* Configuring the encoder
+* Creating an output stream
+* Writing the container header
+* Generating `AVFrame` instances
+* Sending frames to the encoder
+* Receiving encoded packets
+* Rescaling packet timestamps
+* Writing packets to the muxer
+* Draining the encoder
+* Writing the container trailer
+
+The example closely follows FFmpeg's native send/receive encoding API and is intended for users who want to understand what happens underneath the high-level encoding abstraction.
+
+It also demonstrates important FFmpeg concepts such as encoder buffering, packet timestamps, stream time bases, and the distinction between codec parameters and encoder state.
+
+---
+
+# 🎛️ Filtering
+
+Examples demonstrating how to construct and use FFmpeg filter graphs.
+
+---
+
+## 7. Filters
+
+**Basic filter graph example**
+
+This example introduces FFmpeg filter graphs and demonstrates how to construct and configure them using FFmpegDotNet.
+
+The example covers:
+
+* Creating a `FilterGraph`
+* Creating filter contexts
+* Parsing and linking a filter description
+* Creating video buffer sources and sinks
+* Linking the buffer source and sink to the filter graph
+* Inspecting filter options
+* Configuring the filter graph
+* Dumping the graph in a human-readable format
+
+The example uses a simple filter chain to change the frame rate and pixel format of a video:
+
+```text
+Input → FPS → Format → Output
+```
+
+This example focuses on the structure and API of filter graphs rather than processing a complete media file.
+
+---
+
+## 8. Complex Filtering
+
+**Complete video decode → filter → encode pipeline**
+
+This example demonstrates how a complex FFmpeg filter graph can be integrated into a complete multimedia processing pipeline.
+
+The example:
+
+* Opens an input media file
+* Decodes its video stream
+* Processes the video through a complex filter graph
+* Changes the frame rate to 30 FPS
+* Splits the image into separate red, green, and blue channels
+* Combines the resulting images into a 2×2 grid
+* Encodes the filtered video using SVT-AV1
+* Copies the audio stream without re-encoding it
+* Writes the result to an output file
+
+The filter graph is:
+
+```text
+fps → scale → format(rgb24) → split
+                              ├─ original ──────┐
+                              ├─ red only ──────┤
+                              ├─ green only ────┤ → xstack → format(yuv420p)
+                              └─ blue only ─────┘
+```
+
+The example demonstrates how a filter graph can be treated as a reusable processing stage between decoding and encoding:
+
+```text
+Demux → Decode → Filter → Encode → Mux
+```
+
+It also demonstrates how complex filter graphs can be created from filter strings using `ParseAndLink`, rather than manually creating and connecting every individual filter.
+
+---
+
+# Planned Examples
 
 ## Transcoding
 
@@ -134,7 +217,7 @@ Examples demonstrating complete media conversion pipelines.
 
 A transcoding pipeline combines multiple FFmpeg stages:
 
-```
+```text
 Demux → Decode → Filter → Encode → Mux
 ```
 
@@ -165,7 +248,7 @@ Each example directory contains a README with additional details about the imple
   The main .NET wrapper library for FFmpeg.
 
 * **FFmpegDotNet.Skia**
-  Integration between FFmpegDotNet and SkiaSharp for converting decoded video frames into images.
+  Integration between FFmpegDotNet and SkiaSharp for converting decoded video frames into images and generating video frames.
 
 * **FFmpegDotNet.bin.winx64**
   Package containing FFmpeg native binaries for Windows.
@@ -177,3 +260,5 @@ Each example directory contains a README with additional details about the imple
 These examples are intended to demonstrate the different levels of abstraction available in FFmpegDotNet.
 
 Simple applications can use the high-level APIs, while advanced users can work directly with the underlying FFmpeg components to build custom multimedia pipelines.
+
+The examples are also intended to be read progressively: the high-level examples demonstrate what can be accomplished with minimal FFmpeg knowledge, while the corresponding **Under The Hood** examples expose the individual FFmpeg components and the processing steps that the high-level APIs manage internally.

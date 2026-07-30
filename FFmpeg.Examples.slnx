@@ -9,4 +9,6 @@
   <Project Path="4. Options/4. Options.csproj" Id="47c268ae-49ba-43f6-9320-9bf34cda953c" />
   <Project Path="5. Encoding/5. Encoding.csproj" Id="173cd1a4-493d-4707-97b2-78e01002810f" />
   <Project Path="6. EncodingUnderTheHood/6. EncodingUnderTheHood.csproj" Id="39fbdbe9-7995-446e-b26c-e111f219e351" />
+  <Project Path="7. Filters/7. Filters.csproj" Id="de305589-8f84-4116-98d0-07e3f5b0e945" />
+  <Project Path="8. FilterComplex/8. FilterComplex.csproj" Id="d38fff51-acc5-4697-96bf-164dff4584bb" />
 </Solution>

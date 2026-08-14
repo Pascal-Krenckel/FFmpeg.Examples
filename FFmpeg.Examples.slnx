@@ -11,4 +11,5 @@
   <Project Path="6. EncodingUnderTheHood/6. EncodingUnderTheHood.csproj" Id="39fbdbe9-7995-446e-b26c-e111f219e351" />
   <Project Path="7. Filters/7. Filters.csproj" Id="de305589-8f84-4116-98d0-07e3f5b0e945" />
   <Project Path="8. FilterComplex/8. FilterComplex.csproj" Id="d38fff51-acc5-4697-96bf-164dff4584bb" />
+  <Project Path="9. SimpleVideoPlayer/9. SimpleVideoPlayer.csproj" Id="9d822099-d484-47b6-9ee8-ca4687e0a6c6" />
 </Solution>

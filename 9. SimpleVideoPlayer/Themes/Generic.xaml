@@ -1,0 +1,236 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:skia="clr-namespace:SkiaSharp.Views.WPF;assembly=SkiaSharp.Views.WPF"
+    xmlns:local="clr-namespace:VideoPlayer.Controls">
+
+    <!-- ============================================================ -->
+    <!-- Palette — one accent (amber, standing in for projector light) -->
+    <!-- everything else stays quiet and near-monochrome.              -->
+    <!-- ============================================================ -->
+    <SolidColorBrush x:Key="Vp.Surface" Color="#0B0B0C"/>
+    <SolidColorBrush x:Key="Vp.TextPrimary" Color="#F2EFE9"/>
+    <SolidColorBrush x:Key="Vp.TextMuted" Color="#9C968C"/>
+    <SolidColorBrush x:Key="Vp.Track" Color="#3A3733"/>
+    <SolidColorBrush x:Key="Vp.Accent" Color="#F2A65A"/>
+
+    <LinearGradientBrush x:Key="Vp.Scrim" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#000B0B0C" Offset="0"/>
+        <GradientStop Color="#A00B0B0C" Offset="0.6"/>
+        <GradientStop Color="#F00B0B0C" Offset="1"/>
+    </LinearGradientBrush>
+
+    <!-- ============================================================ -->
+    <!-- Focus visual — replaces the default dotted rectangle with a  -->
+    <!-- rounded amber outline that matches the rest of the chrome.   -->
+    <!-- ============================================================ -->
+    <Style x:Key="Vp.FocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="2" RadiusX="4" RadiusY="4"
+                               Stroke="{StaticResource Vp.Accent}"
+                               StrokeThickness="1" StrokeDashArray="1 2"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============================================================ -->
+    <!-- Slider — a thin progress track instead of the default chrome. -->
+    <!-- DecreaseRepeatButton = played portion (accent, soft glow),    -->
+    <!-- IncreaseRepeatButton = remaining (muted), Thumb = hover-only. -->
+    <!-- ============================================================ -->
+    <local:SliderFillWidthConverter x:Key="Vp.SliderFillWidthConverter"/>
+
+    <!--
+        Both RepeatButtons are now purely invisible hit-test areas (click left/right
+        of the thumb to jump-seek). The visible fill is drawn separately below, sized
+        by an explicit converter instead of relying on Track's RepeatButton widths -
+        Track sizes DecreaseRepeatButton to reach the thumb's LEFT edge, not its
+        center, and that's not something worth fighting via margins.
+    -->
+    <Style x:Key="Vp.SliderHitAreaButton" TargetType="RepeatButton">
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border Background="Transparent"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Vp.SliderThumb" TargetType="Thumb">
+        <Setter Property="Width" Value="12"/>
+        <Setter Property="Height" Value="12"/>
+        <Setter Property="Opacity" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Ellipse Fill="{StaticResource Vp.TextPrimary}">
+                        <Ellipse.Effect>
+                            <DropShadowEffect BlurRadius="6" ShadowDepth="0" Opacity="0.35"/>
+                        </Ellipse.Effect>
+                    </Ellipse>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsDragging" Value="True">
+                <Setter Property="Opacity" Value="1"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <ControlTemplate x:Key="Vp.SliderTemplate" TargetType="Slider">
+        <Grid Height="20" VerticalAlignment="Center">
+            <Border Height="3" CornerRadius="1.5" VerticalAlignment="Center" Background="{StaticResource Vp.Track}"/>
+
+            <!--
+                The visible fill. Width is computed so its right edge always lands on
+                the thumb's center - see SliderFillWidthConverter. IsHitTestVisible is
+                False so clicks pass through to the Track's RepeatButtons beneath.
+            -->
+            <Border x:Name="FillBar" Height="3" CornerRadius="1.5" VerticalAlignment="Center"
+                    HorizontalAlignment="Left" Background="{StaticResource Vp.Accent}"
+                    IsHitTestVisible="False">
+                <Border.Effect>
+                    <DropShadowEffect Color="#F2A65A" BlurRadius="8" ShadowDepth="0" Opacity="0.5"/>
+                </Border.Effect>
+                <Border.Width>
+                    <MultiBinding Converter="{StaticResource Vp.SliderFillWidthConverter}">
+                        <Binding Path="Value" RelativeSource="{RelativeSource TemplatedParent}"/>
+                        <Binding Path="Minimum" RelativeSource="{RelativeSource TemplatedParent}"/>
+                        <Binding Path="Maximum" RelativeSource="{RelativeSource TemplatedParent}"/>
+                        <Binding Path="ActualWidth" RelativeSource="{RelativeSource TemplatedParent}"/>
+                    </MultiBinding>
+                </Border.Width>
+            </Border>
+
+            <Track x:Name="PART_Track">
+                <Track.DecreaseRepeatButton>
+                    <RepeatButton Style="{StaticResource Vp.SliderHitAreaButton}"/>
+                </Track.DecreaseRepeatButton>
+                <Track.IncreaseRepeatButton>
+                    <RepeatButton Style="{StaticResource Vp.SliderHitAreaButton}"/>
+                </Track.IncreaseRepeatButton>
+                <Track.Thumb>
+                    <Thumb x:Name="PART_Thumb" Style="{StaticResource Vp.SliderThumb}"/>
+                </Track.Thumb>
+            </Track>
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="PART_Thumb" Property="Opacity" Value="1"/>
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style x:Key="Vp.SliderStyle" TargetType="Slider">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Height" Value="20"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="IsMoveToPointEnabled" Value="True"/>
+        <Setter Property="Template" Value="{StaticResource Vp.SliderTemplate}"/>
+    </Style>
+
+    <!-- ============================================================ -->
+    <!-- Play/pause — no button chrome, just a glyph with a soft      -->
+    <!-- amber halo that fades in on hover.                           -->
+    <!-- ============================================================ -->
+    <Style x:Key="Vp.PlayPauseButton" TargetType="ToggleButton">
+        <Setter Property="Width" Value="36"/>
+        <Setter Property="Height" Value="36"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Foreground" Value="{StaticResource Vp.TextPrimary}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Vp.FocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid>
+                        <Ellipse x:Name="Halo" Fill="{StaticResource Vp.Accent}" Opacity="0"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Halo" Property="Opacity" Value="0.14"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Timecode text — monospace, muted, sits quietly next to the transport controls. -->
+    <Style x:Key="Vp.TimeText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Foreground" Value="{StaticResource Vp.TextMuted}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- ============================================================ -->
+    <!-- Control template                                              -->
+    <!-- ============================================================ -->
+    <Style TargetType="{x:Type local:VideoPlayerControl}">
+        <Setter Property="Background" Value="{StaticResource Vp.Surface}"/>
+        <Setter Property="Focusable" Value="True"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Vp.FocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type local:VideoPlayerControl}">
+                    <Grid Background="{TemplateBinding Background}" ClipToBounds="True">
+
+                        <!--
+                            The render surface. GLVersion left at default (OpenGL);
+                            drop to SKElement instead of SKGLElement if you need to
+                            target a machine without a GL-capable driver, at the
+                            cost of doing composition on the CPU.
+                        -->
+                        <skia:SKGLElement x:Name="PART_SkiaElement"/>
+
+                        <!--
+                            Transport chrome floats over the bottom of the video as a
+                            gradient scrim, rather than taking a permanent dock row.
+                            Part names are the only contract — restyle freely.
+                        -->
+                        <Border VerticalAlignment="Bottom" Background="{StaticResource Vp.Scrim}" Padding="16,28,16,12">
+                            <StackPanel>
+                                <Slider x:Name="PART_TimelineSlider" Style="{StaticResource Vp.SliderStyle}"/>
+
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <ToggleButton x:Name="PART_PlayPauseButton" Grid.Column="0"
+                                                  Style="{StaticResource Vp.PlayPauseButton}"
+                                                  Content="{Binding PlaybackState, RelativeSource={RelativeSource TemplatedParent},
+                                                            Converter={x:Static local:PlaybackStateToGlyphConverter.Instance}}"/>
+
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="4,0,0,0">
+                                        <TextBlock Style="{StaticResource Vp.TimeText}"
+                                                   Text="{Binding Position, RelativeSource={RelativeSource TemplatedParent}, StringFormat=hh\\:mm\\:ss}"/>
+                                        <TextBlock Style="{StaticResource Vp.TimeText}" Text=" / "/>
+                                        <TextBlock Style="{StaticResource Vp.TimeText}"
+                                                   Text="{Binding Duration, RelativeSource={RelativeSource TemplatedParent}, StringFormat=hh\\:mm\\:ss}"/>
+                                    </StackPanel>
+
+                                    <Slider x:Name="PART_VolumeSlider" Grid.Column="3" Width="72"
+                                            VerticalAlignment="Center" Style="{StaticResource Vp.SliderStyle}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

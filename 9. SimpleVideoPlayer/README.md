@@ -125,25 +125,40 @@ this example takes on, to keep the wiring easy to follow.
 
 ## Running the example
 
-This example is a WPF application rather than a console tool, so there's no
-`input`/`output` pair to pass on the command line. Run it like any WPF
-project:
+Like the other examples, the video to play is passed as the first
+command-line argument rather than chosen from within the app. The project's
+`launchSettings.json` already points this at a bundled sample clip:
+
+```json
+{
+  "profiles": {
+    "9. SimpleVideoPlayer": {
+      "commandName": "Project",
+      "commandLineArgs": "\"$(ProjectDir)..\\mp4-example-video-download-full-hd-1920x1080.1min.mp4\""
+    }
+  }
+}
+```
+
+So running it (via F5/Visual Studio, or `dotnet run`) opens straight into that
+clip:
 
 ```bash
-dotnet run --project "9. SimpleVideoPlayer"
+dotnet run --project "9. SimpleVideoPlayer" -- "path\to\your\video.mp4"
 ```
 
-Then open a video or audio file — `VideoPlayerControl.UriSource` is the entry
-point either way:
+The argument just needs to reach `VideoPlayerControl.UriSource` — e.g. in
+`MainWindow`'s startup:
 
 ```csharp
-Player.UriSource = new Uri(@"C:\clips\sample.mp4");
+if (Environment.GetCommandLineArgs() is [_, var path, ..])
+    Player.UriSource = new Uri(path);
 ```
 
-If the sample's `MainWindow` doesn't already wire up an **Open** command, a
-minimal one is just an `OpenFileDialog` setting `UriSource` to the chosen
-path — `VideoPlayerControl.VideoSourceFactory` already defaults to
-`NAudio.MediaPlayer`, so nothing else needs to be constructed by hand.
+`VideoPlayerControl.VideoSourceFactory` already defaults to
+`NAudio.MediaPlayer`, so nothing else needs to be constructed by hand — unlike
+examples 1–8, the window then stays open and playing rather than the process
+exiting once the work is done.
 
 ## Known limitations
 

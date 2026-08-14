@@ -272,10 +272,11 @@ Planned examples include:
 
 4. Open and run the desired example project.
 
-Most examples (1–8) are console applications that take file paths as
-command-line arguments. Example 9 is a WPF application instead — run it and
-open a file from within the app rather than passing arguments on the command
-line.
+Every example takes its input file as a command-line argument, and
+example 9's project already ships a `launchSettings.json` profile pointing at
+a bundled sample clip, so F5/`dotnet run` plays something out of the box. The
+difference is what happens afterward: examples 1–8 process the file and exit,
+while example 9 opens a window and keeps running/playing.
 
 Each example directory contains a README with additional details about the implementation and concepts demonstrated.
 

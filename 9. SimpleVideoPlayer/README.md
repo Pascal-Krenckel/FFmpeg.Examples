@@ -26,13 +26,13 @@ The example:
 ```text
 ┌─────────────────────────┐
 │   VideoPlayerControl    │  ← WPF: transport UI, SKGLElement paint loop
-└────────────┬─────────────┘
+└────────────┬────────────┘
              │ depends on
              ▼
       IVideoSource            ← the only thing the UI knows about
              ▲
              │ implemented by
-┌────────────┴─────────────┐
+┌────────────┴──────────────┐
 │   NAudio.MediaPlayer      │
 └──┬─────────────────────┬──┘
    │                     │

@@ -1,177 +1,133 @@
-# VideoPlayerControl (SKGLElement-based)
+# VideoPlayerControl — FFmpegDotNet `PlaybackEngine` example
 
-A lookless WPF control for video playback, rendered with SkiaSharp's
-`SKGLElement` (hardware-accelerated OpenGL surface). Decoding is delegated
-to an `IVideoSource` you implement — this package only contains the control
-and the contract, per the request.
+This is an example project showing how to drive FFmpegDotNet's
+**`PlaybackEngine`** class from a WPF UI. It pairs `PlaybackEngine` with:
 
-## Files
+- **SkiaSharp** (`SKGLElement`) for video frame rendering, and
+- **NAudio 3.0** (WASAPI exclusive-mode) for audio output and as the playback clock.
 
-| File | Purpose |
+The goal is to demonstrate a real, working end-to-end wiring — open a file, decode,
+render, hear audio, scrub, mute, loop — not to be a hardened production player.
+Known rough edges are called out explicitly below rather than hidden.
+
+## Project layout
+
+| File | Role |
 |---|---|
-| `IVideoSource.cs` | The seam between control and decoder. `PlaybackState`, `VideoStretch`, `VideoFrame`, and the `IVideoSource` interface. |
-| `VideoPlayerControl.cs` | The control: dependency properties, routed events, commands, template wiring, and the paint/letterbox logic. |
-| `Themes/Generic.xaml` | Default `ControlTemplate` — SKGLElement + a minimal transport bar. |
-| `PlaybackStateToGlyphConverter.cs` | Tiny converter used by the default template. |
+| `VideoPlayerControl.cs` | Lookless WPF control. Owns bindable transport state, commands, the timeline/volume sliders, and the `SKGLElement` paint loop. |
+| `IVideoSource.cs` | The contract the control depends on — implemented by `NAudio.MediaPlayer`, not by the control itself. |
+| `Themes/Generic.xaml` | Default control template: video surface + a floating transport bar. |
+| `PlaybackStateToGlyphConverter.cs` | Play/pause glyph for the transport bar. |
+| `SliderFillWidthConverter.cs` | Computes the scrub-bar fill width so it lines up with the thumb's center. |
+| `NAudio/MediaPlayer.cs` | **The `IVideoSource` implementation.** Wraps `PlaybackEngine`, owns the WASAPI player, and exposes the decoded frame as an `SKBitmap`. |
+| `NAudio/MediaPlayerWaveProvider.cs` | `IWaveProvider` adapter — pulls decoded audio out of `PlaybackEngine` on NAudio's terms. |
+| `NAudio/NAudioPlayer.cs` | Implements `PlaybackEngine`'s `IMediaClock` on top of the WASAPI player, so **audio drives the playback clock**. |
+| `NAudio/WaveFormatExtensions.cs` | Conversions between `PlaybackEngine`'s `SampleFormat`/`ChannelLayout` and NAudio's `WaveFormat`. |
 
-## Design decisions
+## How the pieces fit together
 
-**Lookless control, not UserControl.** `VideoPlayerControl : Control` with
-`Themes/Generic.xaml` means consumers can retemplate the whole chrome
-(or supply none) while the SKGLElement + transport parts stay contractually
-named (`PART_SkiaElement`, `PART_PlayPauseButton`, `PART_TimelineSlider`,
-`PART_VolumeSlider`). This mirrors how `MediaElement`/`Slider`/`ScrollViewer`
-are built in WPF, so it composes normally with styling systems.
+```
+VideoPlayerControl (WPF)
+        │  depends on
+        ▼
+   IVideoSource  ───────────────────────────────────────────────┐
+        ▲ implemented by                                        │
+        │                                                        │
+NAudio.MediaPlayer                                                │
+        │                                                        │
+        ├── FFmpeg.MediaPlayer.PlaybackEngine   (demux + decode)  │
+        │        │                                                │
+        │        ├── VideoFrameReady event → engine.ReadVideo()  │
+        │        │      copied into a persistent SKBitmap        │
+        │        │      (the `Frame` property IVideoSource        │
+        │        │       exposes — see caveat below)              │
+        │        │                                                │
+        │        └── Clock = NAudioPlayer<WasapiPlayer>          │
+        │                                                        │
+        └── NAudioPlayer<WasapiPlayer> : IMediaClock              │
+                 │                                                │
+                 └── WasapiPlayer (exclusive mode) ────────────────┘
+                          + MediaPlayerWaveProvider (IWaveProvider)
+```
 
-**The control never decodes anything.** All of that lives behind
-`IVideoSource`. The control's only jobs are:
-- Own bindable playback state (`Position`, `Duration`, `Volume`, `PlaybackRate`, `Stretch`, ...).
-- Drive a `CompositionTarget.Rendering` loop *only while `PlaybackState == Playing`*,
-  invalidating the SKGLElement each frame. Paused/stopped/closed states don't
-  spin the render loop — no wasted composition passes.
-- On `PaintSurface`, ask the source for the current frame
-  (`TryGetCurrentFrame`) and letterbox/pillarbox/crop it onto the canvas
-  according to `Stretch`, then dispose the frame.
-- Translate UI gestures (slider drag, keyboard, commands) into calls on
-  `IVideoSource`, and translate the source's events back into DP changes —
-  with re-entrancy guards (`_isSyncingPosition`, `_isUserScrubbing`) so
-  "source says position changed" doesn't loop back into "seek to position."
+**Audio is the clock.** `NAudioPlayer<T>` implements `PlaybackEngine.IMediaClock`
+and is assigned to `engine.Clock` in `MediaPlayer.Open`. Its `Position` is
+`AudioPlayer.GetPositionTimeSpan() + ptsOffset` — i.e. playback position comes
+from how much audio WASAPI has actually consumed, not a separate timer. This is
+the standard approach for AV sync: audio underruns are far more perceptible than
+a video frame being a little early or late, so video timing follows the audio
+clock rather than the other way around. `ClockChanged` bubbles up through
+`MediaPlayer.PositionChanged`, which `VideoPlayerControl` listens to in order to
+keep `Position` and the scrub bar in sync.
 
-**Frames are `SKImage`, not `SKBitmap`.** `SKGLElement` gives you a GPU
-`GRContext` in `PaintSurface`'s `SKPaintGLSurfaceEventArgs.Surface.Context`.
-The control hands that context to the source once
-(`IVideoSource.Initialize(GRContext)`) so a real implementation can create
-`SKImage`s that reference GPU textures directly (e.g. via
-`SKImage.FromTexture`, wrapping a decoded NV12/RGBA texture from hardware
-decode) instead of copying frame bytes through system memory every tick.
-A CPU-only decoder can still conform to the interface trivially via
-`SKImage.FromBitmap`.
+**Format negotiation happens once, at open.** `MediaPlayer.Open` asks the WASAPI
+player whether the source's native sample format is directly supported; if not,
+it either takes the closest match WASAPI offers or asks for a supported
+exclusive-mode format outright, then builds an `aformat`/`aresample` FFmpeg
+filter string so `PlaybackEngine` hands NAudio audio it can actually play. This
+sidesteps `IsFormatSupported` not being reliable in all cases (see the comment
+in `Open`) and avoids doing format conversion per-buffer at runtime.
 
-**Commands over code-behind event handlers.** `PlayCommand`, `PauseCommand`,
-`TogglePlayPauseCommand` (Space), `ToggleMuteCommand` (M),
-`StepForwardCommand`/`StepBackwardCommand` (arrow keys) are static
-`RoutedUICommand`s with default gestures, so keyboard shortcuts and
-external UI (a menu, a global hotkey handler) can drive the control without
-reaching into its internals.
+**Video frames are delivered as a persistent `SKBitmap`, not per-frame images.**
+`IVideoSource.Frame` is a single long-lived `SKBitmap` that `Engine_VideoFrameReady`
+copies each decoded frame into (`frame.CopyTo(Frame)`), and
+`VideoPlayerControl.OnPaintSurface` draws directly via `canvas.DrawBitmap`. This
+is deliberately the simple CPU path — decode → system memory → `SKBitmap` →
+GPU upload each paint — rather than the zero-copy GPU-texture path (FFmpeg
+hardware frames wired directly into Skia's GL context via `WGL_NV_DX_interop2`,
+or an all-Vulkan pipeline). That's a real, meaningfully more complex upgrade;
+see the "Known limitations / possible next steps" section.
 
-**`PlaybackState` is control-owned, not a passthrough of the source's
-enum**, deliberately: it's set optimistically when `Play()`/`Pause()` are
-called (so a Play button flips state instantly) and corrected by the
-source's `BufferingStarted/Ended`, `MediaEnded`, and `MediaFailed` events.
-This keeps the UI responsive without waiting on a round-trip to the decoder
-for simple state, while still reflecting buffering/ended/failed accurately.
+## Requirements
 
-**Things intentionally left out of the design**, since they're
-implementation/model concerns, not control-surface concerns:
-audio device selection, subtitle rendering, HDR tone-mapping, DRM,
-network buffering policy, thumbnail/scrub-preview generation. Each of these
-would show up as additions to `IVideoSource` (or a sibling interface) rather
-than changes to the control.
+- .NET 10 / C# 14 — `WaveFormatExtensions.cs` uses C# 14 extension members
+  (`extension(WaveFormat waveFormat) { ... }`).
+- **FFmpegDotNet** — provides `FFmpeg.MediaPlayer.PlaybackEngine`,
+  `FFmpeg.Audio`, `FFmpeg.Skia`, `FFmpeg.Utils`, `FFmpeg.AutoGen`.
+- **NAudio 3.0** — `WasapiPlayerBuilder`, `IWavePosition`, and the exclusive-mode
+  format helpers used here are 3.0 APIs.
+- **SkiaSharp.Views.WPF** — for `SKGLElement`.
 
 ## Usage
 
+`VideoPlayerControl.VideoSourceFactory` already defaults to
+`() => new _9._SimpleVideoPlayer.NAudio.MediaPlayer()`, so in the common case you
+don't need to wire anything yourself — just point it at a file:
+
 ```xml
-<Window
-    xmlns:vp="clr-namespace:VideoPlayer.Controls;assembly=VideoPlayer.Controls">
-
-    <vp:VideoPlayerControl
-        x:Name="Player"
-        UriSource="{Binding CurrentVideoUri}"
-        Stretch="Uniform"
-        AutoPlay="True"
-        Volume="{Binding Volume, Mode=TwoWay}"
-        MediaFailed="Player_MediaFailed"/>
-</Window>
+<vp:VideoPlayerControl
+    x:Name="Player"
+    UriSource="{Binding CurrentVideoUri}"
+    Stretch="Uniform"
+    AutoPlay="True"
+    Volume="{Binding Volume, Mode=TwoWay}"
+    MediaFailed="Player_MediaFailed"/>
 ```
+
+To use a different `IVideoSource` implementation instead (e.g. swapping in a
+GPU-interop decoder later), either assign `Player.VideoSource` directly, or
+override the static factory before any control opens media:
 
 ```csharp
-// Wire a decoder implementation once, e.g. in App startup:
-VideoPlayerControl.VideoSourceFactory = () => new FfmpegVideoSource();
-
-// Or assign per-instance:
-Player.VideoSource = new FfmpegVideoSource();
-Player.UriSource = new Uri(@"C:\clips\sample.mp4");
+VideoPlayerControl.VideoSourceFactory = () => new MyOtherVideoSource();
 ```
 
-### Mock IVideoSource for exercising the control without a real decoder
+## Known limitations / possible next steps
 
-Useful for storyboard/UI work before the decoding backend exists:
-
-```csharp
-public sealed class SolidColorTestSource : IVideoSource
-{
-    private readonly System.Windows.Threading.DispatcherTimer _clock = new()
-        { Interval = TimeSpan.FromMilliseconds(16) };
-    private TimeSpan _position;
-    private SKColor _color = SKColors.CornflowerBlue;
-    private GRContext _context;
-
-    public PlaybackState State { get; private set; } = PlaybackState.Closed;
-    public TimeSpan Position => _position;
-    public TimeSpan Duration { get; } = TimeSpan.FromSeconds(30);
-    public System.Windows.Size NaturalSize { get; } = new(1920, 1080);
-    public bool IsSeekable => true;
-    public double PlaybackRate { get; set; } = 1.0;
-    public double Volume { get; set; } = 1.0;
-    public bool IsMuted { get; set; }
-
-    public event EventHandler<EventArgs> MediaOpened;
-    public event EventHandler<EventArgs> MediaEnded;
-    public event EventHandler<VideoSourceErrorEventArgs> MediaFailed;
-    public event EventHandler<EventArgs> PositionChanged;
-    public event EventHandler<EventArgs> BufferingStarted;
-    public event EventHandler<EventArgs> BufferingEnded;
-
-    public void Initialize(GRContext context) => _context = context;
-
-    public Task OpenAsync(Uri source, CancellationToken ct = default)
-    {
-        State = PlaybackState.Paused;
-        MediaOpened?.Invoke(this, EventArgs.Empty);
-        return Task.CompletedTask;
-    }
-
-    public void Play()
-    {
-        State = PlaybackState.Playing;
-        _clock.Tick += (_, _) =>
-        {
-            _position += TimeSpan.FromMilliseconds(16 * PlaybackRate);
-            if (_position >= Duration) { _position = Duration; Stop(); MediaEnded?.Invoke(this, EventArgs.Empty); }
-            PositionChanged?.Invoke(this, EventArgs.Empty);
-        };
-        _clock.Start();
-    }
-
-    public void Pause() { State = PlaybackState.Paused; _clock.Stop(); }
-    public void Stop() { State = PlaybackState.Stopped; _clock.Stop(); _position = TimeSpan.Zero; }
-    public void Close() { Stop(); State = PlaybackState.Closed; }
-
-    public Task SeekAsync(TimeSpan position, CancellationToken ct = default)
-    {
-        _position = position;
-        PositionChanged?.Invoke(this, EventArgs.Empty);
-        return Task.CompletedTask;
-    }
-
-    public bool TryGetCurrentFrame(out VideoFrame frame)
-    {
-        // Cycle hue over time just so you can see it's live.
-        _color = SKColor.FromHsv((float)(_position.TotalSeconds * 12 % 360), 60, 90);
-
-        var info = new SKImageInfo(1920, 1080);
-        using var surface = SKSurface.Create(info);
-        surface.Canvas.Clear(_color);
-        frame = new VideoFrame(surface.Snapshot(), _position);
-        return true;
-    }
-
-    public void Dispose() => _clock.Stop();
-}
-```
-
-## Not implemented here (by design, per the request)
-
-- Any actual demuxer/decoder/codec integration.
-- Audio output/mixing.
-- The `IVideoSource` implementation itself — only the contract it must satisfy.
+- **`PlaybackRate` isn't supported.** NAudio has no built-in rate control;
+  `MediaPlayer.PlaybackRate`'s setter throws. Supporting it would mean adding
+  an `atempo`/`rubberband`-style FFmpeg audio filter and a matching video-side
+  rate adjustment — not wired up here.
+- **`Frame` is a single shared, mutable `SKBitmap`**, written on the decode
+  thread (`Engine_VideoFrameReady`) and read on the UI thread
+  (`OnPaintSurface`) with no explicit synchronization or double-buffering.
+  In practice this is usually fine — a torn frame is rare and self-correcting
+  a frame later — but it's worth knowing about if you see occasional visual
+  glitches, and it's the first thing to fix if this stops being a demo.
+- **CPU-only video path.** Every frame goes decode → system memory → `SKBitmap`
+  → GPU texture upload on each paint. Fine for typical resolutions/frame rates;
+  for 4K/HDR/high-refresh content, wiring FFmpeg's hardware-decoded frames
+  directly into Skia's GL (or Vulkan) context would remove that per-frame copy.
+- **No buffering UI.** `IVideoSource` in this version doesn't surface
+  buffering state to the control, so `PlaybackState.Buffering` is effectively
+  unused today.

@@ -9,9 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FFmpegDotNet" Version="8.1.2.6" />
+    <PackageReference Include="FFmpegDotNet" Version="8.1.2.8" />
     <PackageReference Include="FFmpegDotNet.bin.winx64" Version="8.1.2.4" />
-    <PackageReference Include="FFmpegDotNet._AutoGen" Version="8.1.2.3" />
   </ItemGroup>
 
 </Project>

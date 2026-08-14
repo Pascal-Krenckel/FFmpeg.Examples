@@ -209,6 +209,40 @@ It also demonstrates how complex filter graphs can be created from filter string
 
 ---
 
+# 🎬 Playback
+
+Examples demonstrating real-time, interactive playback rather than one-shot decode/encode pipelines.
+
+---
+
+## 9. Simple Video Player
+
+**Real-time playback example (WPF)**
+
+This example demonstrates how to drive `PlaybackEngine` from an interactive
+GUI application, where — unlike every prior example — the pipeline has to run
+in real time, stay in sync with an audio device, and respond to transport
+commands (play/pause/seek/volume) at any moment.
+
+The example:
+
+* Opens a media file and plays it back with synchronized audio and video
+* Renders decoded video frames with SkiaSharp (`SKGLElement`) in a WPF control
+* Plays decoded audio with NAudio 3.0 in WASAPI exclusive mode, using the
+  audio device itself as `PlaybackEngine`'s playback clock
+* Wraps `PlaybackEngine` and NAudio behind a small `IVideoSource` interface,
+  so the WPF control and its transport UI don't depend on FFmpeg or NAudio
+  directly
+
+This example pairs FFmpegDotNet with **FFmpegDotNet.Skia** (for frame
+delivery), **SkiaSharp.Views.WPF** (for GPU-accelerated rendering), and
+**NAudio 3.0** (for audio output) — the first example in this repository to
+combine FFmpegDotNet with a UI framework and an audio backend.
+
+See `9. SimpleVideoPlayer/README.md` for the full architecture and design notes.
+
+---
+
 # Planned Examples
 
 ## Transcoding
@@ -238,6 +272,11 @@ Planned examples include:
 
 4. Open and run the desired example project.
 
+Most examples (1–8) are console applications that take file paths as
+command-line arguments. Example 9 is a WPF application instead — run it and
+open a file from within the app rather than passing arguments on the command
+line.
+
 Each example directory contains a README with additional details about the implementation and concepts demonstrated.
 
 ---
@@ -261,4 +300,4 @@ These examples are intended to demonstrate the different levels of abstraction a
 
 Simple applications can use the high-level APIs, while advanced users can work directly with the underlying FFmpeg components to build custom multimedia pipelines.
 
-The examples are also intended to be read progressively: the high-level examples demonstrate what can be accomplished with minimal FFmpeg knowledge, while the corresponding **Under The Hood** examples expose the individual FFmpeg components and the processing steps that the high-level APIs manage internally.
+The examples are also intended to be read progressively: the high-level examples demonstrate what can be accomplished with minimal FFmpeg knowledge, while the corresponding **Under The Hood** examples expose the individual FFmpeg components and the processing steps that the high-level APIs manage internally. Example 9 sits at a different point on that spectrum entirely — it shows FFmpegDotNet doing real-time work inside a live application, rather than a batch job that runs start to finish.

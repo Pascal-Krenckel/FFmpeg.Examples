@@ -9,7 +9,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="FFmpegDotNet" Version="8.1.2.11" />
-		<PackageReference Include="FFmpegDotNet.bin.winx64" Version="8.1.2.4" />
+		<PackageReference Include="FFmpegDotNet.bin.winx64" Version="8.1.2.6" />
 	</ItemGroup>
 
 </Project>

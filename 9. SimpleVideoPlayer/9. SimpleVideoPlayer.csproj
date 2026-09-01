@@ -10,11 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FFmpegDotNet" Version="8.1.2.8" />
+    <PackageReference Include="FFmpegDotNet" Version="8.1.2.11" />
     <PackageReference Include="FFmpegDotNet.bin.winx64" Version="8.1.2.4" />
-    <PackageReference Include="FFmpegDotNet.Skia" Version="2.2.0" />
-    <PackageReference Include="NAudio" Version="3.0.0-preview.20" />
-    <PackageReference Include="NAudio.Wasapi" Version="3.0.0-preview.20" />
+    <PackageReference Include="FFmpegDotNet.Skia" Version="2.3.0" />
+    <PackageReference Include="NAudio" Version="3.0.1" />
+    <PackageReference Include="NAudio.Wasapi" Version="3.0.1" />
     <PackageReference Include="SkiaSharp.Views.WPF" Version="4.151.1" />
   </ItemGroup>
 

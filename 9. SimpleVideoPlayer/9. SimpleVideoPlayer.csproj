@@ -10,8 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FFmpegDotNet" Version="8.1.2.11" />
-    <PackageReference Include="FFmpegDotNet.bin.winx64" Version="8.1.2.6" />
+    <PackageReference Include="FFmpegDotNet" Version="9.9.0" />
+    <PackageReference Include="FFmpegDotNet.bin.winx64" Version="9.0.1" />
     <PackageReference Include="FFmpegDotNet.Skia" Version="2.3.0" />
     <PackageReference Include="NAudio" Version="3.0.1" />
     <PackageReference Include="NAudio.Wasapi" Version="3.0.1" />
